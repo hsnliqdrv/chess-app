@@ -1,0 +1,58 @@
+<html>
+	<head>
+		<title>Chess Home Page</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script>
+			init();
+		</script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/init.js"></script>
+		<style>
+			#navbar a {
+				color:red;
+				margin:3px;
+			}
+			#navbar {
+				background-color:gray;
+				text-align:center;
+			}
+			#navbar span {
+				font-weight: bold;
+			}
+			#root p {
+				color: blue;
+			}
+			.center {
+				background-color: white;
+				position: fixed;
+				top: 30%;
+			}
+		</style>
+	</head>
+	<body>
+	<div id="navbar">
+		name:<span></span>
+		<button id="reset" onclick="resetLocal()">reset</button> <br>
+		<a href="games">games</a><a href="/">home</a>
+	</div>
+	<div id="root">
+		<h1>Chess App</h1>
+		<p>
+		Welcome to the Chess App. 
+		This app lets you play chess with other players inside your home network.
+		</p>
+		<h3>How to play?</h3>
+		<p>
+		Firstly, go to the <a href="/games">games</a> page.
+		Start a game and wait for someone to join, or join an existing game.
+		</p>
+	</div>
+	<script>
+		function main(user) {
+			
+		};
+	</script>
+	</script>
+	</body>
+	
+</html>

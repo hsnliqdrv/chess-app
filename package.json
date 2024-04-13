@@ -1,0 +1,17 @@
+{
+  "name": "chess-app",
+  "version": "1.0.0",
+  "description": "Chess app for home network",
+  "main": "script.js",
+  "scripts": {
+    "test": "node script.js"
+  },
+  "author": "hsnliqdrv",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "socket-io": "^1.0.0",
+    "socket.io": "^4.7.5"
+  }
+}

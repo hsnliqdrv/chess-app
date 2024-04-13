@@ -1,0 +1,38 @@
+<html>
+	<head>
+		<title>Chess Home Page</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/init.js"></script>
+		<style>
+			#navbar a {
+				color:red;
+				margin:3px;
+			}
+			#navbar {
+				background-color:gray;
+				text-align:center;
+			}
+			#navbar span {
+				font-weight: bold;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+	<div id="navbar">
+		name:<span></span>
+		<button id="reset" onclick="resetLocal()">reset</button> <br>
+		<a href="/games">games</a><a href="/">home</a>
+	</div>
+	<div id="root">
+	
+	</div>
+	
+	<script>
+		function main(user) {
+		};
+	</script>
+	</body>
+</html>

@@ -1,0 +1,367 @@
+<html>
+	<head>
+		<title>Chess Home Page</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		
+		<script>
+			var loaded=0;
+			var sprites = {
+				"bbp":"bbp.png",
+				"bkt":"bkt.png",
+				"brk":"brk.png",
+				"bpn":"bpn.png",
+				"bkg":"bkg.png",
+				"bqn":"bqn.png",
+				"wbp":"wbp.png",
+				"wkt":"wkt.png",
+				"wrk":"wrk.png",
+				"wpn":"wpn.png",
+				"wkg":"wkg.png",
+				"wqn":"wqn.png"	
+			};
+			let keys = Object.keys(sprites);
+			for (let i = 0; i < keys.length; i++) {
+				let k = keys[i];
+				let s = sprites[k];
+				sprites[k]=new Image(35,35);
+				sprites[k].onload=() => {
+					loaded+=1;
+					if (loaded == 10) {
+						init();
+					};
+				};
+				sprites[k].src=s;
+			};
+		</script>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/init.js"></script>
+		<style>
+			#navbar a {
+				color:red;
+				margin:3px;
+			}
+			#navbar {
+				background-color:gray;
+				text-align:center;
+			}
+			#navbar span {
+				font-weight: bold;
+			}
+			#root table th,td {
+				overflow:hidden;
+				max-width:140px;
+				max-height:20px;
+				padding: 3px;
+			}
+			#root table,th,td {
+				border: none;
+			}
+			.center {
+				background-color: white;
+				position: fixed;
+				top: 30%;
+			}
+			#play {
+				position:relative;
+				margin-top:5px;
+			}
+			#play table {
+				width:320px;
+				height:320px;
+				max-width:300px;
+				max-height:300px;
+				padding: 0;
+				background-size: cover;
+				background-repeat: no-repeat;
+				
+			}
+			#play table td {
+				width:40px;
+				height:40px;
+				border: 3px solid black;
+			}
+		</style>
+	</head>
+	
+	<body>
+	<div id="navbar">
+		name:<span></span>
+		<button id="reset" onclick="resetLocal()">reset</button> <br>
+		<a href="/games">games</a><a href="/">home</a>
+	</div>
+	<div id="root">
+		<h3>Games: <button onclick="getGames();">Refresh</button>
+			<button onclick="openGame();">New Game</button>
+		</h3>
+		<table id="games">
+			<tr>
+				<th>Room leader</th>
+				<th>Players</th>
+			</tr>
+		</table>
+	</div>
+	<div id="play">
+	
+		<table id="board">
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+			<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+		</table>
+		
+		<span>Your opponent:</span> <span id="opponent"></span> 
+		<button id="leave" onclick="leaveGame()">Leave Game</button>
+		
+	</div>
+	
+	<script>
+		let table;
+		let board;
+		
+		function gameElem(data) {
+			let available = data.playerCount < 2;
+		
+			let tr = document.createElement("TR");
+			tr.className="game-inst";
+			
+			let rl = document.createElement("TD");
+			rl.innerHTML=data.createdBy;
+			
+			let ps = document.createElement("TD");
+			ps.innerHTML = data.playerCount+"/2";
+			ps.style.color = available?"green":"red";
+			let jn = document.createElement("TD");
+			
+			let btn = document.createElement("BUTTON");
+			btn.innerHTML="Join";
+			btn.onclick = () => {
+				joinGame(data);
+			};
+			btn.disabled = !available;
+			
+			jn.appendChild(btn);
+			
+			tr.appendChild(rl);
+			tr.appendChild(ps);
+			tr.appendChild(jn);
+			
+			return tr;
+		};
+		
+		function update(data) {
+			table.querySelectorAll(".game-inst").forEach(elem => {
+				elem.remove();
+			});
+			for (let i = 0; i < data.length; i++) {
+				table.appendChild(gameElem(data[i]));
+			};
+		};
+		
+		function getGames() {
+			socket.emit("getGames");
+		};
+		
+		
+		function openGame() {
+			socket.emit("openGame");
+		};
+		
+		function joinGame(game) {
+			setAppActive(false);
+			socket.emit("joinGame",game.id);
+		};
+		
+		function leaveGame() {
+			if (gameActive) {
+				setAppActive(false);
+				socket.emit("leaveGame");
+			} else {
+				closeGamePage();
+			}
+		};
+		function initBoard() {
+			let l = board.querySelectorAll("td");
+			for (let i = 0; i<l.length; i++) {
+				let x = i%8,y=parseInt(i/8);
+				l[i].coord=[x,y];
+				if (x%2==y%2) {
+					l[i].style.backgroundColor="green";
+				} else {
+					l[i].style.backgroundColor="gray";
+				};
+			};
+		};
+		function closeGamePage() {
+			setMode(0);
+		};
+		function openGamePage() {
+			setMode(1);
+		};
+		function resetGamePage() {
+			document.querySelector("#opponent").innerHTML="";
+			updateBoard([]);
+		};
+		
+		var selectedCell = null;
+		
+		function setClickListeners(active) {
+			board.querySelectorAll("td").forEach(td => {
+				td.onclick=active?e => {
+					let target = e.target.coord?e.target:e.target.parentNode;
+					if (selectedCell) {
+						handleMove(selectedCell,target);
+						selectedCell.style.borderColor="";
+						selectedCell=null;
+					} else {
+						selectedCell=target;
+						selectedCell.style.borderColor="red";
+					};
+				}:null;
+			});
+		};
+		
+		function updateBoard(data) {
+			if (playerColor == "black") {
+				data.reverse();
+			};
+			for (let i = 0; i < data.length; i++) {
+				let f = board.querySelectorAll("tr")[parseInt(i/8)]
+					     .querySelectorAll("td")[i%8];
+				for (let i = 0; i<f.children.length;i++) {
+					f.children[i].remove();
+				};
+				if (data[i]) {
+					f.appendChild(sprites[data[i]].cloneNode());
+				};
+			};
+		};
+		const xc = ['a','b','c','d','e','f','g','h'];
+		const yc = ['1','2','3','4','5','6','7','8'];
+		function handleMove(cell1,cell2) {
+			let pos1,pos2;
+			let c1=cell1.coord,c2=cell2.coord;
+			if (playerColor=="black") {
+				c1=c1.map(a=>7-a);
+				c2=c2.map(a=>7-a);
+			};
+			pos1=xc[c1[0]]+yc[7-c1[1]];
+			pos2=xc[c2[0]]+yc[7-c2[1]];
+			socket.emit("doMove",[pos1,pos2]);
+		};
+		
+		function stopGame() {
+			socket.off("gameStart");
+			socket.off("gameUpdate");
+			socket.off("gameEnd");
+			setClickListeners(false);
+			board.style.filter="grayscale(60%)";
+		};
+		
+		var playerColor;
+		let gameActive;
+		function main(user) {
+			board=document.getElementById("board");
+			table = document.getElementById("games");
+			initBoard();
+			closeGamePage();
+			
+			socket.on("gameList", games => {
+				update(games);
+			});
+			socket.on("goToGame", id => {
+				console.log("joined "+id);
+				gameActive=true;
+				setAppActive(true);
+				resetGamePage();
+				openGamePage();
+				startWaiting();
+				socket.on("gameStart",players => {
+					console.log(players);
+					players=players.split(",");
+					stopWaiting();
+					setClickListeners(true);
+					playerColor = players.indexOf(user)?"black":"white";
+					let opponent = players[players.indexOf(user)?0:1];
+					document.querySelector("#opponent").innerHTML=opponent;
+					
+					socket.on("gameUpdate",(data,new_status) => {
+						data=data.split(",");
+						updateBoard(data);
+					});
+					socket.on("gameEnd", result => {
+						gameActive=false;
+						stopGame();
+						let s;
+						if (result == "won_by_black") {
+							s = "The black won the game";
+						}
+						else if (result == "won_by_white") {
+							s = "The white won the game";
+						}
+						else if (result == "draw") {
+							s = "The game was drawn";
+						};
+						alert(s);
+					});
+					socket.on("closeGame",() => {
+						socket.off("closeGame");
+						setAppActive(true);
+						closeGamePage();
+					});
+				});
+			});
+			socket.on("disconnect", () => {
+				alert("You are disconnected.");
+				setAppActive(false);
+			});
+			
+			getGames();
+		};
+		
+		function startWaiting() {
+			board.style.filter="blur(5px)";
+			let cont = document.createElement("DIV");
+			cont.id = "wait";
+			cont.className="center";
+			let para = document.createElement("P");
+			para.innerHTML="Waiting for an opponent";
+			para.interval=setInterval(() => {
+				let e = document.querySelector("#wait p");
+				let n = 0;
+				for (let i = e.innerHTML.length-1; i > -1; i--) {
+					if (e.innerHTML[i] == ".") {
+						n++;
+					} else {
+						break;
+					};
+				};
+				e.innerHTML=e.innerHTML.split(".")[0]+".".repeat((n+1)%4);
+			},1000);
+			cont.appendChild(para);
+			document.querySelector("#play").appendChild(cont);
+		};
+		
+		function stopWaiting() {
+			clearInterval(document.querySelector("#wait p").interval);
+			document.querySelector("#wait").remove();
+			board.style.filter="";
+			
+		};
+		
+		function setMode(mode) {
+			if (mode == 0) {
+				document.getElementById("root").style.display="";
+				document.getElementById("play").style.display="none";
+			} else {
+				document.getElementById("root").style.display="none";
+				document.getElementById("play").style.display="";
+			}
+		};
+	</script>
+	</body>
+</html>
