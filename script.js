@@ -96,10 +96,10 @@ let handleConn = socket => {
 						gameManager.closeGame(currentGame);
 						io.to(currentGame).emit("gameEnd",result);
 					};
-					
-					socket.leave(currentGame);
-					
+
 					socket.emit("closeGame");
+
+					socket.leave(currentGame);
 					
 					currentGame=null;
 					

@@ -259,7 +259,6 @@
 			socket.off("gameUpdate");
 			socket.off("gameEnd");
 			setClickListeners(false);
-			board.style.filter="grayscale(60%)";
 		};
 		
 		var playerColor;
@@ -294,25 +293,26 @@
 						updateBoard(data);
 					});
 					socket.on("gameEnd", result => {
+						console.log("gameEnd");
 						gameActive=false;
 						stopGame();
 						let s;
-						if (result == "won_by_black") {
-							s = "The black won the game";
-						}
-						else if (result == "won_by_white") {
-							s = "The white won the game";
+						if ((result == "won_by_black" && playerColor=="black") || (result == "won_by_white" && playerColor=="white")) {
+							s = "You won the game";
 						}
 						else if (result == "draw") {
-							s = "The game was drawn";
+							s = "DRAW";
+						}
+						else {
+							s = "You lost the game";
 						};
 						alert(s);
 					});
-					socket.on("closeGame",() => {
-						socket.off("closeGame");
-						setAppActive(true);
-						closeGamePage();
-					});
+				});
+				socket.on("closeGame",() => {
+					setAppActive(true);
+					closeGamePage();
+					socket.off("closeGame");
 				});
 			});
 			socket.on("disconnect", () => {

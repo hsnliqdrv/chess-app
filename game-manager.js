@@ -100,7 +100,7 @@ const findGame = (id) => {
 	return -1;
 };
 
-const movePiece = (game,pos1,pos2) => {
+const movePiece = (game,pos1,pos2,player) => {
 	
 	let order=game.players.indexOf(player);
 	
@@ -118,25 +118,26 @@ const movePiece = (game,pos1,pos2) => {
 	};
 	
 	piece = piece.slice(1);
+
+	let valid;
+	// do move validation here...
+	valid=true;
+	if (!valid) return false;
 	
-	if (kingIsChecked && piece != "kg") {
-		return false;
-	};
-	
-	// complete validate move here
-	
-	this.set(pos2,this.get(pos1));
-	this.set(pos1,"");
+	game.board.set(pos2,game.board.get(pos1));
+	game.board.set(pos1,"");
 	
 	game.movehis.push([pos1,pos2]);
 	game.turn=o;
 	game.result=gameResult(game.board);
 	
-	return true;
+	return game;
 };
 
+
+
 const gameResult = (board) => {
-	// return game result
+	// if game has finished return result else return false
 	return;
 };
 
@@ -168,9 +169,8 @@ const handlePlayerTurn = (player,move,gid) => {
 	if (index == -1) {
 		return false;
 	};
-	let game=gameList[index];
 	
-	let r = movePiece(gameList[index],pos1,pos2);
+	let r = movePiece(gameList[index],pos1,pos2,player);
 	
 	if (!r) {
 		return false;
