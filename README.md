@@ -1,2 +1,2 @@
 # chess-app
-A simple Chess app with server, client.
+A simple Chess app with server, client. (DEMO)
