@@ -63,7 +63,7 @@ let handleConn = socket => {
 					if (currentGame) {
 						handleLeaveGame(currentGame);
 					};
-
+					
 					currentGame=id;
 					
 					socket.join(currentGame);
