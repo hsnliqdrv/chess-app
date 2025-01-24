@@ -52,8 +52,8 @@ let handleConn = socket => {
 			};
 			socket.on("openGame", handleOpenGame);
 			let sendUpdate = () => {
-				let data = gameManager.gameData(currentGame);
-				io.to(currentGame).emit("gameUpdate",data.board.join(","));
+				let data = gameManager.gameData(currentGame).board;
+				io.to(currentGame).emit("gameUpdate",data.join(","));
 			};
 			let handleJoinGame = (id) => {
 				let r = gameManager.joinPlayerToGame(user,id);
@@ -112,11 +112,12 @@ let handleConn = socket => {
 			
 			let handleDoMove = (move) => {
 				let r = gameManager.handlePlayerTurn(user,move,currentGame);
+				sendUpdate();
 				if (!(r===false)) {
 					let res = gameManager.gameData(currentGame).result;
 					if (res) {
 						
-						io.to(currentGame).emit("gameEnd",result);
+						io.to(currentGame).emit("gameEnd",res);
 					
 						gameManager.closeGame(currentGame);
 					
@@ -125,9 +126,9 @@ let handleConn = socket => {
 						currentGame=null;
 					
 						io.emit("gameList", gameManager.getGames());
-					};
+
+					}
 				};
-				sendUpdate();
 			};
 			socket.on("doMove",handleDoMove);
 			

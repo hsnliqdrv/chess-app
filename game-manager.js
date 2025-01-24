@@ -1,6 +1,6 @@
 var gameList = [];
 var joinedPlayers = [];
-
+// bug: after taking white knight with black queen black rook disappeared
 const pieces = {
 	"rook":"rk",
 	"knight":"kt",
@@ -12,6 +12,20 @@ const pieces = {
 function ptoc(pos) {
 	return [8-pos[1],xc.indexOf(pos[0])];
 };
+function ctop(pos) {
+	return xc[pos[1]]+(8-pos[0]);
+}
+
+function arraysEqual(a, b) {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (a.length !== b.length) return false;
+  
+	for (var i = 0; i < a.length; ++i) {
+	  if (a[i] !== b[i]) return false;
+	}
+	return true;
+  }
 
 const stands = [
 	["a1","w"+pieces.rook],
@@ -56,6 +70,7 @@ class Board {
 		this.data=Array(8*8);
 		this.off=[];
 		this.init = () => {
+			this.data.fill("");
 			for (let i = 0; i < stands.length;i++) {
 				this.set(stands[i][0],stands[i][1]);
 			};
@@ -76,7 +91,7 @@ class Board {
 		};
 		this.find=(piece) => {
 			let index = this.data.indexOf(piece);
-			return xc[index%8]+yc[8-parseInt(index/8)];
+			return xc[index%8]+yc[7-parseInt(index/8)];
 		};
 		this.get=(pos)=>{
 			let c = ptoc(pos);
@@ -101,7 +116,7 @@ const findGame = (id) => {
 };
 
 const movePiece = (game,pos1,pos2,player) => {
-	
+
 	let order=game.players.indexOf(player);
 	
 	if (order==-1) {
@@ -111,34 +126,270 @@ const movePiece = (game,pos1,pos2,player) => {
 	let c=["w","b"][order];
 	let o=c=="w"?"b":"w";
 	
-	let piece = game.board.get(pos1);
-	
-	if (game.turn == o || !piece || piece[0] == o) {
+	let piece1 = game.board.get(pos1);
+	let piece2 = game.board.get(pos2);
+
+	if (game.turn == o || !piece1 || piece1[0] == o || pos1 == pos2) {
 		return false;
 	};
-	
-	piece = piece.slice(1);
 
-	let valid;
-	// do move validation here...
-	valid=true;
-	if (!valid) return false;
+	if (!canMoveTo(game.board,pos1,pos2,true)) return false;
+
+	if (isCastle(piece1,piece2)) { // castling case
+		game.board=castle(game.board,pos1,pos2);
+	} else if (pawnPromotes(game.board,c)) {
+		game.board.set(pos2,c+pieces.queen);
+		game.board.set(pos1,"");
+	} else {
+		game.board.set(pos2,piece1);
+		game.board.set(pos1,"");
+	}
 	
-	game.board.set(pos2,game.board.get(pos1));
-	game.board.set(pos1,"");
-	
-	game.movehis.push([pos1,pos2]);
+	game.board.movehis.push([pos1,pos2]);
 	game.turn=o;
-	game.result=gameResult(game.board);
 	
 	return game;
 };
 
+const castle = (board,pos1,pos2) => {
+	let c1=ptoc(pos1),c2=ptoc(pos2);
+	let d = (c1[1]-c2[1])/Math.abs(c1[1]-c2[1]);
+	let pos1_,pos2_;
+	if (Math.abs(c1[1]-c2[1]) == 3) {
+		pos1_=ctop([c1[0],c1[1]-2*d]),pos2_=ctop([c2[0],c2[1]+2*d]);
+	} else {
+		pos1_=ctop([c1[0],c1[1]-2*d]),pos2_=ctop([c2[0],c2[1]+3*d]);
+	}
+	board.set(pos1_,board.get(pos1));
+	board.set(pos2_,board.get(pos2));
+	board.set(pos1,"");
+	board.set(pos2,"");
+	return board;
+};
 
 
-const gameResult = (board) => {
-	// if game has finished return result else return false
-	return;
+const isCastle = (piece1,piece2) => {
+	return (piece1[0] == piece2[0] && piece1.slice(1) == pieces.king && piece2.slice(1) == pieces.rook);
+}
+
+
+const canMoveTo = (board,pos1,pos2,checkKing) => {
+	let p1=ptoc(pos1),p2=ptoc(pos2);
+	let r0=p2[0]-p1[0],r1=p2[1]-p1[1];
+	let piece1=board.get(pos1),piece2=board.get(pos2);
+	let c=piece1[0];
+	let o=c=="w"?"b":"w";
+	let ch1=piece1.slice(1);
+	let iscastle = false;
+	switch (ch1) {
+		case pieces.bishop:
+			if (Math.abs(r0) != Math.abs(r1)) {
+				return false;
+			}
+			break;
+		case pieces.knight:
+			if (!arraysEqual([Math.abs(r0),Math.abs(r1)].sort(),[1,2])) {
+				return false;
+			}
+			break;
+		case pieces.rook:
+			if (r0*r1 != 0) {
+				return false;
+			}
+			break;
+		case pieces.king:
+			if (!(Math.abs(r0) <= 1 && Math.abs(r1) <= 1)) {
+				if (canCastle(board,pos1,pos2)) {
+					iscastle=true;
+				} else {
+					return false;
+				}
+			}
+			break;
+		case pieces.queen:
+			if (!(Math.abs(r0) == Math.abs(r1) || r0*r1 == 0)) {
+				return false;
+			}
+			break;
+		case pieces.pawn:
+			let s1 = board.get(ctop([pos1[0],pos2[1]-1]));
+			let s2 = board.get(ctop([pos1[0],pos2[1]+1]));
+			if (!piece2) {
+				if (!(((piece1[0] == "w" && r0 == -1 && r1==0) || (piece1[0] == "b" && r0 == 1 && r1==0)) || 
+			((piece1[0] == "w" && p1[0] == 6 && r0 == -2 && r1 == 0) || (piece1[0] == "b" && p1[0] == 1 && r0 == 2 && r1 == 0)) ||
+		((s1 && s1[0] == o && ((piece1[0] == "w" && r0 == -1 && r1 == -1) || (piece1[0] == "b" && r0 == 1 && r1 == -1))) 
+		|| (s2 && s2[0] == o && ((piece1[0] == "w" && r0 == -1 && r1 == 1) || (piece1[0] == "b" && r0 == 1 && r1 == 1)))))) {
+					return false;
+				}
+			} else {
+				if (!((piece1[0] == "w" && r0 == -1 && Math.abs(r1) == 1)||(piece1[0] == "b" && r0 == 1 && Math.abs(r1)==1))) {
+					return false;
+				}
+			}
+			break;
+		default:
+			return false;
+	}
+
+	if (!iscastle && piece2[0] == c) {
+		return false;
+	}
+
+	if (ch1 != pieces.knight && !iscastle) {
+		let step0 = r0==0?0:r0/Math.abs(r0),step1 = r1==0?0:r1/Math.abs(r1);
+		let n = (r0 != 0)? r0/step0 : r1/step1;
+		for (let i = 1; i <= n-1; i++) {
+			if (board.get(ctop([p1[0]+step0*i,p1[1]+step1*i]))) {
+				return false;
+			}
+		}
+	}
+	if (!iscastle) {
+		if (checkKing) {
+			data=board.data.slice();
+			board.set(pos2, piece1);
+			board.set(pos1,"")
+			if (isChecked(board,board.find(c+pieces.king),o)) {
+				board.data=data;
+				return false;
+			}
+		}
+		board.data=data;
+	}
+	return true;
+};
+
+const canCastle = (board,pos1,pos2) => {
+	let piece1 = board.get(pos1);
+	let piece2 = board.get(pos2);
+
+	if (isCastle(piece1,piece2)) {
+		if (isChecked(board,pos1,piece1[0]=="w"?"b":"w")) {
+			return false;
+		}
+		for (let m of board.movehis) {
+			if (m.includes(pos1) || m.includes(pos2)) {
+				return false;
+			}
+		}
+		let p1=ptoc(pos1),p2=ptoc(pos2);
+		let step = ((p1[1]-p2[1])/Math.abs(p1[1]-p2[1]));
+		while (p1[1]+step != p2[1]) {
+			let p = ctop([p1[0],p1[1]+step]);
+			if (board.get(p) || isChecked(board,p,piece1[0]=="w"?"b":"w")) {
+				return false;
+			}
+			p1=[p1[0],p1[1]+step];
+		}
+		return true;
+	} else {
+		return false;
+	}
+};
+
+const pawnPromotes = (board,color) => {
+	for (let j = 0; j < 8; j++) {
+		let pos = ctop([color=="w"?0:7,j]);
+		let ch = board.get(pos);
+		if (ch == color+pieces.pawn) {
+			return true;
+		}
+	}
+	return false;
+};
+
+const isChecked = (board, t_pos,o=false) => {
+	let arr = [];
+	for (let pos of piecesPos(board,o)) {
+		let ch = board.get(pos);
+		if (ch && ((o && ch[0] == o) || (!o)) && canMoveTo(board,pos,t_pos,checkKing=false)) {
+			arr.push(pos);
+		}
+	}
+	return arr.length==0?false:arr;
+};
+
+const piecesPos = (board,color) => {
+	let arr = [];
+	for (let i = 0; i < 8; i++) {
+		for (let j = 0; j < 8; j++) {
+			let pos = ctop([i,j]);
+			let ch = board.get(pos);
+			if (ch) {
+				if ((color && ch[0] == color) || (!color)) {
+					arr.push(pos);
+				}
+			}
+		}
+	}
+	return arr;
+};
+
+const checkMate = (board,color) => {
+	let o = color=="w"?"b":"w";
+	let pos = board.find(color+pieces.king);
+	let checkers = isChecked(board,pos,o); 
+	if (!checkers) return false;
+	if (possibleMoves(board,pos).length == 0) {
+		let poss = piecesPos(board,color);
+		for (let chPos of checkers) {
+			for (let cpos of poss) {
+				let p1=ptoc(chPos),p2=ptoc(pos);
+				let r0=p2[0]-p1[0],r1=p2[1]-p1[1];
+				let step0 = r0==0?0:r0/Math.abs(r0),step1 = r1==0?0:r1/Math.abs(r1);
+				let n = (r0 != 0)? r0/step0 : r1/step1;
+				for (let i = 0; i <= n-1; i++) {
+					if (canMoveTo(board,cpos,ctop([p1[0] + step0*i,p1[1] + step1*i]),true)) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	} else {
+		return false;
+	}
+};
+
+const possibleMoves = (board,pos) => {
+	if (!pos) return false;
+	let arr = [];
+	for (let i = 0; i < 8; i++) {
+		for (let j = 0; j < 8; j++) {
+			let pos_ = ctop([i,j]);
+			if (canMoveTo(board,pos,pos_,true)) {
+				arr.push([pos,pos_])
+			}
+		}
+	}
+	return arr;
+};
+
+const staleMate = (board,color) => {
+	for (let i = 0; i < 8; i++) {
+		for (let j=0; j<8; j++) {
+			let pos = ctop([i,j]);
+			let piece = board.get(pos);
+			if (piece[0] == color) {
+				if (possibleMoves(board,pos).length > 0) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+};
+
+const gameStatus = (game) => {
+	let o = game.turn=="w"?"b":"w";
+	
+	if (checkMate(game.board,game.turn)) {
+		return o=="w"?2:4;
+	} else if (staleMate(game.board,game.turn)) {
+		return 3;
+	} else {
+		return 1;
+	}
 };
 
 // exports
@@ -156,7 +407,7 @@ const startGame = (id) => {
 		game.players=players.reverse();
 	};
 	game.turn="w";
-	game.movehis=[];
+	game.board.movehis=[];
 	gameList[index]=game;
 	return true;
 };
@@ -177,8 +428,18 @@ const handlePlayerTurn = (player,move,gid) => {
 	};
 	
 	gameList[index]=r;
+
+	let gstatus = gameStatus(r);
 	
-	return true;
+	if (gstatus == 2) {
+		gameList[index].result="won_by_white";
+	} else if (gstatus == 4) {
+		gameList[index].result="won_by_black"
+	} else if (gstatus == 3) {
+		gameList[index].result="draw"
+	}
+
+	return gstatus;
 };
 
 const openGame = (createdBy) => {
