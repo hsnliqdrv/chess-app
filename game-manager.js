@@ -1,6 +1,5 @@
 var gameList = [];
 var joinedPlayers = [];
-// bug: after taking white knight with black queen black rook disappeared
 const pieces = {
 	"rook":"rk",
 	"knight":"kt",
@@ -137,7 +136,7 @@ const movePiece = (game,pos1,pos2,player) => {
 
 	if (isCastle(piece1,piece2)) { // castling case
 		game.board=castle(game.board,pos1,pos2);
-	} else if (pawnPromotes(game.board,c)) {
+	} else if (pawnPromotes(game.board,pos1,pos2)) {
 		game.board.set(pos2,c+pieces.queen);
 		game.board.set(pos1,"");
 	} else {
@@ -273,13 +272,13 @@ const canCastle = (board,pos1,pos2) => {
 			}
 		}
 		let p1=ptoc(pos1),p2=ptoc(pos2);
-		let step = ((p1[1]-p2[1])/Math.abs(p1[1]-p2[1]));
+		let step = ((p2[1]-p1[1])/Math.abs(p1[1]-p2[1]));
 		while (p1[1]+step != p2[1]) {
 			let p = ctop([p1[0],p1[1]+step]);
 			if (board.get(p) || isChecked(board,p,piece1[0]=="w"?"b":"w")) {
 				return false;
 			}
-			p1=[p1[0],p1[1]+step];
+			p1[1]=p1[1]+step;
 		}
 		return true;
 	} else {
@@ -287,13 +286,11 @@ const canCastle = (board,pos1,pos2) => {
 	}
 };
 
-const pawnPromotes = (board,color) => {
-	for (let j = 0; j < 8; j++) {
-		let pos = ctop([color=="w"?0:7,j]);
-		let ch = board.get(pos);
-		if (ch == color+pieces.pawn) {
-			return true;
-		}
+const pawnPromotes = (board,pos1,pos2) => {
+	let piece1 = board.get(pos1), piece2 = board.get(pos2);
+	let c2 = ptoc(pos2);
+	if (piece1.slice(1) == pieces.pawn && !piece2 && (c2[0] == 0 && piece1[0] == "w" || c2[0] == 7 && piece1[0] == "b")) {
+		return true;
 	}
 	return false;
 };
