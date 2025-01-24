@@ -8,11 +8,24 @@ const pieces = {
 	"king":"kg",
 	"pawn":"pn",
 };
+
+Object.defineProperties(Array.prototype, {
+    count: {
+        value: function(value) {
+            return this.filter(x => x==value).length;
+        }
+    }
+});
+
 function ptoc(pos) {
 	return [8-pos[1],xc.indexOf(pos[0])];
 };
 function ctop(pos) {
 	return xc[pos[1]]+(8-pos[0]);
+}
+
+function posToIndex(pos) {
+	return (ptoc(pos)[0]*8+ptoc(pos)[1])
 }
 
 function arraysEqual(a, b) {
@@ -21,12 +34,12 @@ function arraysEqual(a, b) {
 	if (a.length !== b.length) return false;
   
 	for (var i = 0; i < a.length; ++i) {
-	  if (a[i] !== b[i]) return false;
+	  if (b.count(a[i]) != a.count(a[i])) return false;
 	}
 	return true;
   }
 
-const stands = [
+/*const stands = [
 	["a1","w"+pieces.rook],
 	["b1","w"+pieces.knight],
 	["c1","w"+pieces.bishop],
@@ -59,7 +72,10 @@ const stands = [
 	["f7","b"+pieces.pawn],
 	["g7","b"+pieces.pawn],
 	["h7","b"+pieces.pawn]
-];
+];*/
+const stands = [
+	["c1","w"+pieces.bishop],["e1","w"+pieces.king],["e8","b"+pieces.king],["f8","b"+pieces.bishop]
+]
 
 const xc = ['a','b','c','d','e','f','g','h'];
 const yc = ['1','2','3','4','5','6','7','8'];
@@ -377,12 +393,28 @@ const staleMate = (board,color) => {
 	return true;
 };
 
+const inSufficientMaterial = (board) => {
+	let w = piecesPos(board,"w");
+	let b = piecesPos(board,"b");
+	let wp = w.map(board.get), wpp = w.map(ptoc).map(p => (p[0]+p[1])%2);
+	let bp = b.map(board.get), bpp = b.map(ptoc).map(p => (p[0]+p[1])%2);
+	if ((wp == ["w"+pieces.king] && bp == ["b"+pieces.king]) || 
+(wp, arraysEqual(["w"+pieces.king,"w"+pieces.knight]) && arraysEqual(bp, ["b"+pieces.king])) || 
+(wp, arraysEqual(["w"+pieces.king]) && arraysEqual(bp, ["b"+pieces.king,"b"+pieces.knight])) ||
+(wp, arraysEqual(["w"+pieces.king,"w"+pieces.bishop]) && arraysEqual(bp, ["b"+pieces.king])) || 
+(wp, arraysEqual(["w"+pieces.king]) && arraysEqual(bp, ["b"+pieces.king,"b"+pieces.bishop])) ||
+(arraysEqual(wp,["w"+pieces.king,"w"+pieces.bishop]) && arraysEqual(bp,["b"+pieces.king,"b"+pieces.bishop]) && 
+wpp[wp.indexOf("w"+pieces.bishop)] == bpp[bp.indexOf("b"+pieces.bishop)])) {
+	return true;
+	}
+};
+
 const gameStatus = (game) => {
 	let o = game.turn=="w"?"b":"w";
 	
 	if (checkMate(game.board,game.turn)) {
 		return o=="w"?2:4;
-	} else if (staleMate(game.board,game.turn)) {
+	} else if (staleMate(game.board,game.turn) || inSufficientMaterial(game.board)) {
 		return 3;
 	} else {
 		return 1;
