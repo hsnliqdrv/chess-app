@@ -37,9 +37,9 @@ function arraysEqual(a, b) {
 	  if (b.count(a[i]) != a.count(a[i])) return false;
 	}
 	return true;
-  }
+}
 
-/*const stands = [
+const stands = [
 	["a1","w"+pieces.rook],
 	["b1","w"+pieces.knight],
 	["c1","w"+pieces.bishop],
@@ -72,22 +72,19 @@ function arraysEqual(a, b) {
 	["f7","b"+pieces.pawn],
 	["g7","b"+pieces.pawn],
 	["h7","b"+pieces.pawn]
-];*/
-const stands = [
-	["c1","w"+pieces.bishop],["e1","w"+pieces.king],["e8","b"+pieces.king],["f8","b"+pieces.bishop]
-]
+];
 
 const xc = ['a','b','c','d','e','f','g','h'];
 const yc = ['1','2','3','4','5','6','7','8'];
 
 class Board {
-	constructor() {
+	constructor(poss=[]) {
 		this.data=Array(8*8);
 		this.off=[];
 		this.init = () => {
 			this.data.fill("");
-			for (let i = 0; i < stands.length;i++) {
-				this.set(stands[i][0],stands[i][1]);
+			for (let i = 0; i < poss.length;i++) {
+				this.set(poss[i][0],poss[i][1]);
 			};
 		};
 		
@@ -122,7 +119,6 @@ class Board {
 
 const findGame = (id) => {
 	for (let i = 0; i < gameList.length; i++) {
-		
 		if (gameList[i].id == id) {
 			return i;
 		};
@@ -423,13 +419,13 @@ const gameStatus = (game) => {
 
 // exports
 
-const startGame = (id) => {
+const startGame = (id,poss=stands) => {
 	let index=findGame(id);
 	if (index == -1) {
 		return false;
 	};
 	let game= gameList[index];
-	game.board=new Board();
+	game.board=new Board(poss);
 	game.board.init();
 	let players=game.players;
 	if (Math.floor(Math.random()*2)) {
@@ -512,6 +508,7 @@ const gameData = (id) => {
 	};
 	if (game.board) {
 		res.board=game.board.data;
+		res.boardAccesser=game.board;
 	};
 	return res;
 };
